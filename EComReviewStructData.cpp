@@ -1,13 +1,22 @@
+/* Name: Julius Inocencio
+* Date: 21 Jul 2024
+ * Section: COP3363-0002
+ * Assignment: Module 11: Womens Clothing E-Commerce Reviews Data using Structures Program
+ * Due Date:  July 21 by 11:59pm
+ * About this project: This program will allow the user to input either (a) displays data from file showing reviews with age, rating, item, and comment / (b) displaying the maximum, minimum, and average rating for each item / (c) quit the program
+ * Assumptions: If the user inputs correctly (a,b,c), they will have the option to see info from the text document. If they enter anything else, a prompt will tell them that they entered an invalid option.
+ * All work below was performed by Julius Inocencio */
+
 #include <iostream>
 #include <fstream>
 #include <vector>
 #include <string>
-#include <algorithm>
+#include <iomanip>
 
 using namespace std;
 
-// Structure to hold the data
-struct Review {
+struct Review
+{
     string item;
     int age;
     int rating;
@@ -70,8 +79,8 @@ void readDataFromFile(vector<Review>& reviews)
     // Check if the file was opened successfully
     if (!infile)
     {
-        cout << "Error opening file!" << endl;
-        return;
+        cout << "Error opening file! Please make sure file is in the correct directory." << endl;
+        exit(0);
     }
 
     string line;
@@ -83,24 +92,24 @@ void readDataFromFile(vector<Review>& reviews)
         string tempItem, tempAge, tempRating;
         int tabCount = 0;
 
-        for (int i = 0; i < line.length(); i++)
+        for (int j = 0; j < line.length(); j++)
         {
             // Check if the current character is a tab
-            if (line[i] == '\t')
+            if (line[j] == '\t')
             {
                 tabCount++;
             } else if (tabCount == 0)
             {
                 // If we haven't reached the first tab yet, add the character to the item name
-                tempItem += line[i];
+                tempItem += line[j];
             } else if (tabCount == 1)
             {
                 // If we've reached the first tab, add the character to the age
-                tempAge += line[i];
+                tempAge += line[j];
             } else if (tabCount == 2)
             {
                 // If we've reached the second tab, add the character to the rating
-                tempRating += line[i];
+                tempRating += line[j];
             }
         }
 
@@ -137,83 +146,144 @@ void displayMenu()
 // Function to process option A
 void processOptionA(const vector<Review>& reviews)
 {
-    // Display the data for each review
-    for (const Review& review : reviews)
+    cout << "Item                       Age    Rating" << endl; //lazy mode
+    cout << "Comment" << endl;
+    cout << "*********************************************************" << endl;
+
+    for (int i = 0; i < reviews.size(); i++)
     {
-        cout << "Item: " << review.item << endl
-             << "Age: " << review.age << endl
-             << "Rating: " << review.rating << endl
-             << "Comments: " << review.comments << endl
-             << "------------------------" << endl;
+        cout << setw(25) << left << reviews[i].item << setw(5) << reviews[i].age << setw(5) << reviews[i].rating << endl;
+        cout << reviews[i].comments << endl;
+        cout << endl;
     }
 }
 
 // Function to process option B
 void processOptionB(const vector<Review>& reviews)
 {
-    // Create a vector to store the aggregate values for each item
-    vector<pair<string, vector<int>>> itemRatings;
+    // Create a vector to store the item names
+    vector<string> itemNames;
+
+    // Create an array to store the maximum ratings for each item
+    int* maxRatings = new int[reviews.size()];
+
+    // Create an array to store the minimum ratings for each item
+    int* minRatings = new int[reviews.size()];
+
+    // Create an array to store the sum of ratings for each item
+    int* sumRatings = new int[reviews.size()];
+
+    // Create an array to store the count of ratings for each item
+    int* countRatings = new int[reviews.size()];
+
+    // Initialize the arrays
+    for (int i = 0; i < reviews.size(); i++)
+    {
+        maxRatings[i] = 0;
+        minRatings[i] = 0;
+        sumRatings[i] = 0;
+        countRatings[i] = 0;
+    }
 
     // Loop through each review
-    for (const Review& review : reviews)
+    for (int i = 0; i < reviews.size(); i++)
     {
-        // Check if the item is already in the vector
         bool found = false;
-        for (auto& item : itemRatings)
+
+        // Check if the item is already in the vector
+        for (int j = 0; j < itemNames.size(); j++)
         {
-            if (item.first == review.item)
+            if(itemNames[j] == reviews[i].item)
             {
-                item.second.push_back(review.rating);
+                // Update the maximum rating
+                if (reviews[i].rating > maxRatings[j])
+                {
+                    maxRatings[j] = reviews[i].rating;
+                }
+
+                // Update the minimum rating
+                if (reviews[i].rating < minRatings[j])
+                {
+                    minRatings[j] = reviews[i].rating;
+                }
+
+                // Update the sum of ratings
+                sumRatings[j] += reviews[i].rating;
+
+                // Update the count of ratings
+                countRatings[j]++;
+
                 found = true;
                 break;
             }
         }
 
-        // If the item is not in the vector, add it
+        // If the item is not found, add it to the vector
         if (!found)
         {
-            vector<int> ratings;
-            ratings.push_back(review.rating);
-            itemRatings.push_back(make_pair(review.item, ratings));
+            itemNames.push_back(reviews[i].item);
+            maxRatings[itemNames.size() - 1] = reviews[i].rating;
+            minRatings[itemNames.size() - 1] = reviews[i].rating;
+            sumRatings[itemNames.size() - 1] = reviews[i].rating;
+            countRatings[itemNames.size() - 1]++;
         }
     }
 
-    // Sort the vector by item name
-    sort(itemRatings.begin(), itemRatings.end(), [](const pair<string, vector<int>>& a, const pair<string, vector<int>>& b) {
-        return a.first < b.first;
-    });
-
-    // Display the aggregate values for each item
-    for (const auto& item : itemRatings)
+    // Bubble sort the vectors by item name in alphabetical order
+    bool swapped;
+    do
     {
-        int sum = 0;
-        int count = 0;
-        int minRating = INT_MAX;
-        int maxRating = INT_MIN;
-
-        // Compute the sum, count, min, and max for the item
-        for (int rating : item.second)
+        swapped = false;
+        for (int i = 0; i < itemNames.size() - 1; i++)
         {
-            sum += rating;
-            count++;
-            minRating = min(minRating, rating);
-            maxRating = max(maxRating, rating);
-        }
+            if (itemNames[i] > itemNames[i + 1])
+            {
+                // Swap the elements
+                string tempItem = itemNames[i];
+                itemNames[i] = itemNames[i + 1];
+                itemNames[i + 1] = tempItem;
 
-        // Display the aggregate values
-        cout << "Item: " << item.first << endl
-             << "Number of Reviews: " << count << endl
-             << "Sum of Ratings: " << sum << endl
-             << "Average Rating: " << static_cast<double>(sum) / count << endl
-             << "Minimum Rating: " << minRating << endl
-             << "Maximum Rating: " << maxRating << endl
-             << "------------------------" << endl;
+                int tempMaxRating = maxRatings[i];
+                maxRatings[i] = maxRatings[i + 1];
+                maxRatings[i + 1] = tempMaxRating;
+
+                int tempMinRating = minRatings[i];
+                minRatings[i] = minRatings[i + 1];
+                minRatings[i + 1] = tempMinRating;
+
+                int tempSumRating = sumRatings[i];
+                sumRatings[i] = sumRatings[i + 1];
+                sumRatings[i + 1] = tempSumRating;
+
+                int tempCountRating = countRatings[i];
+                countRatings[i] = countRatings[i + 1];
+                countRatings[i + 1] = tempCountRating;
+
+                swapped = true;
+            }
+        }
+    } while (swapped);
+
+    // Display the maximum, minimum, and average rating for each item
+    cout << "Item           Min  Max  Avg" << endl; //lazy mode
+    for (int i = 0; i < itemNames.size(); i++)
+    {
+        double avgRating = static_cast<double>(sumRatings[i]) / countRatings[i];
+
+        cout << setw(15) << left << itemNames[i] << setw(5) << minRatings[i] << setw(5) << maxRatings[i] << setw(5) << fixed << setprecision(2) << avgRating << endl;
     }
+
+    // Delete the dynamically allocated arrays
+    delete[] maxRatings;
+    delete[] minRatings;
+    delete[] sumRatings;
+    delete[] countRatings;
 }
 
 // Function to process option C
 void processOptionC()
 {
     // Quit the program
+    cout << "Goodbye!" << endl;
     exit(0);
 }
